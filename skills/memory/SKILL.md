@@ -72,20 +72,27 @@ workspace/
 
 ## 行为规则
 
-### 1. 记忆碎片记录（手动触发）
+### 1. 记忆碎片记录（自动）
 
-**触发时机：**
-- 用户说 `追加记忆碎片`
-- 或手动调用
+**触发时机：** 每次 AI 回复后自动执行
 
 **执行动作：**
-- 获取当前时间 `YYYY-MM-DD HH:mm:ss`
-- 读取或创建 `memory/fragmentization/YYYY-MM-DD HH.md`
-- 从会话历史中直接提取对话记录（无需模型交互）
-- **追加**对话内容（时间戳 + 用户消息 + AI 回复 + 关键事件）
-- 不修改已有内容
+- 读取 `memory/fragmentization/fragmentization-state.json` 获取上次记录的消息 ID
+- 调用 `sessions_history(limit=100)` 获取当前会话历史
+- 从上次记录的位置开始，提取新对话
+- 格式化为 `HH:mm:ss` 时间戳 + 用户消息 + AI 回复 + sessionKey（元数据）
+- 直接追加到 `memory/fragmentization/YYYY-MM-DD HH.md`（不读取碎片文件）
+- 更新 `fragmentization-state.json` 记录最后消息 ID 和执行时间
 
 **数据来源：** `sessions_history` API（直接获取，不经过模型）
+
+**状态文件：** `memory/fragmentization/fragmentization-state.json`
+```json
+{
+  "lastMessageId": "消息 ID",
+  "lastRunAt": "ISO-8601 时间戳"
+}
+```
 
 ### 2. 记忆整理（手动/自动）
 
