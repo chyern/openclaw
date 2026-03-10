@@ -7,12 +7,12 @@
 - 追加skill请不要使用复制文件的模式，使用连接文件的模式
 - 文件存在即启用
 
-## 追加设定，待追加设定文件和本文件同目录层级
+## 追加设定
 
 | 文件 | 合并目标 |
 |------|---------|------|
-| ADDITION_SOUL.md | SOUL.md |
-| ADDITION_AGENTS.md | AGENTS.md |
+| {本文件的路径}/ADDITION_SOUL.md | SOUL.md |
+| {本文件的路径}/ADDITION_AGENTS.md | AGENTS.md |
 
 ## 追加SKILL
 
