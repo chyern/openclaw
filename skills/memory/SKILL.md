@@ -120,14 +120,6 @@ workspace/
 | palace/environment/system.md | 系统环境配置 | ❄️ |
 ```
 
-## 工具使用
-
-- `read` - 读取记忆文件
-- `write` - 创建新文件
-- `edit` - 精确编辑
-- `exec` - 文件操作（移动、列表等）
-- `cron` - 定时任务管理
-
 ## 配置示例
 
 ### 定时任务（cron）
