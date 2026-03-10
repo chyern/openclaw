@@ -72,26 +72,56 @@ workspace/
 
 ## 行为规则
 
-### 1. 记忆碎片记录（自动）
+### 1. 记忆碎片记录（AI 主动执行）
 
-**触发时机：** 每次 AI 回复后自动执行
+**触发时机：** AI 在每次回复用户**之后**主动执行（本轮交互结束前）
+
+> ⚠️ **重要：** 这不是自动 hook，而是 AI 应该主动调用的流程。**必须在 AI 回复内容已发送后执行**，这样才能通过 `sessions_history` 获取到完整的对话（包括刚才的回复）。
+>
+> **执行顺序：**
+> 1. AI 生成并发送回复
+> 2. AI 调用 `sessions_history` 获取完整对话历史
+> 3. 提取新对话（从上次记录位置到现在）
+> 4. 追加到碎片文件
+> 5. 更新状态文件
 
 **执行动作：**
-- 读取 `memory/fragmentization/fragmentization-state.json` 获取上次记录的消息 ID
-- 调用 `sessions_history(limit=100)` 获取当前会话历史
-- 从上次记录的位置开始，提取新对话
-- 格式化为 `HH:mm:ss` 时间戳 + 用户消息 + AI 回复 + sessionKey（元数据）
-- 直接追加到 `memory/fragmentization/YYYY-MM-DD HH.md`（不读取碎片文件）
-- 更新 `fragmentization-state.json` 记录最后消息 ID 和执行时间
+1. **读取状态** — `memory/fragmentization/fragmentization-state.json` 获取 `lastMessageId`
+2. **获取历史** — 调用 `sessions_history(sessionKey, limit=100)` 获取当前会话历史
+3. **提取新对话** — 从 `lastMessageId` 之后的消息开始，提取用户消息和 AI 回复
+4. **格式化记录** — `HH:mm:ss` 时间戳 + 角色 + 内容 + 元数据（频道、sessionKey）
+5. **追加到碎片文件** — `memory/fragmentization/YYYY-MM-DD HH.md`（按小时分割）
+6. **更新状态** — 写入最新的 `lastMessageId` 和 `lastRunAt`
 
 **数据来源：** `sessions_history` API（直接获取，不经过模型）
 
 **状态文件：** `memory/fragmentization/fragmentization-state.json`
 ```json
 {
-  "lastMessageId": "消息 ID",
+  "lastMessageId": "消息 ID 或 timestamp",
   "lastRunAt": "ISO-8601 时间戳"
 }
+```
+
+**示例记录格式：**
+```markdown
+## 14:23:45 - 用户消息
+
+**频道:** telegram
+**发件人:** +1234567890
+
+今天天气怎么样？
+
+---
+
+## 14:23:50 - AI 回复
+
+**频道:** telegram
+**收件人:** +1234567890
+
+深圳今天晴，气温 25°C。
+
+---
 ```
 
 ### 2. 记忆整理（手动/自动）
