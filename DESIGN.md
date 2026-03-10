@@ -15,5 +15,6 @@
 | {本文件的路径}/ADDITION_AGENTS.md | AGENTS.md |
 
 ## 追加SKILL
+- 需要追加的skill都在{本文件的路径}/skills这个目录下，请加载它们
 
 
