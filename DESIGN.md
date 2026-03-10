@@ -9,10 +9,10 @@
 
 ## 追加的自定义设定模块
 
-| 文件 | 合并目标 | 路径 |
+| 文件 | 合并目标 |
 |------|---------|------|
-| SOUL.md | 内置 SOUL.md | `./SOUL.md` |
-| AGENTS.md | 内置 AGENTS.md | `./AGENTS.md` |
+| ADDITION_SOUL.md | SOUL.md |
+| ADDITION_AGENTS.md | AGENTS.md |
 
 ## 追加的SKILL
 
