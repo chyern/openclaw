@@ -76,24 +76,27 @@ python skills/memory/scripts/rag_search.py search "<查询内容>"
 python skills/memory/scripts/rag_search.py add "<文件名>" "<内容>"
 ```
 
-**文件名参数：** 相对于 `memory/palace/` 的路径（如 `preferences/user.md`）
+**文件名参数：** 相对于 `memory/palace/` 的路径（支持子目录）
 
-**目录结构：**
+**目录结构：** 按需创建，无预定义限制
+
+**常见分类参考：**
 ```
 memory/palace/
-├── preferences/    # 用户偏好
-├── projects/       # 项目信息
-├── people/         # 人物相关
-├── todos/          # 待办事项
-└── context/        # 上下文/背景知识
+├── preferences/     # 偏好/习惯
+├── projects/        # 项目信息
+├── people/          # 人物相关
+├── todos/           # 待办事项
+├── context/         # 背景知识
+├── decisions/       # 重要决策
+├── skills/          # 技能/能力
+└── events/          # 事件记录
 ```
 
-**命名规范：**
-- 偏好类：`preferences/<主题>.md`
-- 项目类：`projects/<项目名>.md`
-- 人物类：`people/<人名>.md`
-- 待办类：`todos/<状态>.md`
-- 上下文类：`context/<主题>.md`
+**命名原则：**
+- 语义清晰（文件名能反映内容）
+- 同类聚合（相关内容放同一目录）
+- 避免过深（建议不超过 2 层子目录）
 
 ---
 
