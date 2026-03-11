@@ -48,8 +48,8 @@ python skills/memory/scripts/rag_search.py search "<查询内容>"
 | 用户输入 | 提取的 Query |
 |----------|-------------|
 | "我上次说的那个项目" | "项目" |
-| "鱼蛋喜欢吃什么" | "鱼蛋 偏好 食物" |
-| "云鲸的加班文化" | "云鲸 加班 文化" |
+| "用户喜欢吃什么" | "用户 偏好 食物" |
+| "公司的加班文化" | "公司 加班 文化" |
 | "记得帮我记下来" | （不检索，触发添加） |
 
 **返回格式：**
@@ -76,11 +76,24 @@ python skills/memory/scripts/rag_search.py search "<查询内容>"
 python skills/memory/scripts/rag_search.py add "<文件名>" "<内容>"
 ```
 
-**文件名规范：**
-- 偏好类：`user-preferences.md`
-- 项目类：`project-<项目名>.md`
-- 待办类：`todos.md`
-- 上下文类：`context-<主题>.md`
+**文件名参数：** 相对于 `memory/palace/` 的路径（如 `preferences/user.md`）
+
+**目录结构：**
+```
+memory/palace/
+├── preferences/    # 用户偏好
+├── projects/       # 项目信息
+├── people/         # 人物相关
+├── todos/          # 待办事项
+└── context/        # 上下文/背景知识
+```
+
+**命名规范：**
+- 偏好类：`preferences/<主题>.md`
+- 项目类：`projects/<项目名>.md`
+- 人物类：`people/<人名>.md`
+- 待办类：`todos/<状态>.md`
+- 上下文类：`context/<主题>.md`
 
 ---
 
@@ -88,20 +101,26 @@ python skills/memory/scripts/rag_search.py add "<文件名>" "<内容>"
 
 **系统后台自动执行**（AI 不主动调用，只负责读取）：
 
+**状态追踪：** `memory/fragmentization/.state.json`
+
+```json
+{
+  "lastProcessed": "2026-03-11 17.md",
+  "processedFiles": ["2026-03-11 14.md", "2026-03-11 15.md", "..."],
+  "lastUpdate": 1710151200
+}
+```
+
+**流程：**
 ```
 阶段 1: 碎片 → 宫殿
-1. 读取未整理的碎片文件
-   → memory/fragmentization/YYYY-MM-DD HH.md
-
-2. 提取关键信息（决策、偏好、待办、项目进展）
-   → 分类整理
-
-3. 更新记忆宫殿
-   → memory/palace/<主题>.md
+1. 读取 .state.json，找到未处理的碎片文件
+2. 读取未整理的碎片 → 提取关键信息
+3. 更新记忆宫殿 → memory/palace/<主题>.md
 
 阶段 2: 宫殿 → 索引
-4. 更新 RAG 索引
-   → 系统自动调用脚本完成索引同步
+4. 更新 RAG 索引 → 系统自动调用脚本同步
+5. 更新 .state.json → 记录已处理的文件
 ```
 
 **AI 角色：** 心跳时直接读取已更新的记忆宫殿和索引，无需执行整理命令。
@@ -120,7 +139,7 @@ pip install -r skills/memory/requirements.txt
 - `sentence-transformers` - Embedding 模型（支持中文）
 
 **环境变量：**
-- `WORKSPACE_ROOT` - 工作区根目录（默认：`/Users/narwal/.openclaw/workspace`）
+- `WORKSPACE_ROOT` - 工作区根目录（由 OpenClaw 自动设置）
 
 ---
 
