@@ -12,12 +12,12 @@
 
 | 追加文件 | 合并目标 | 说明 |
 |----------|----------|------|
-| `{本文件路径}/ADDITION_SOUL.md` | `SOUL.md` | 追加人格 |
-| `{本文件路径}/ADDITION_AGENTS.md` | `AGENTS.md` | 追加工作风格 |
-| `{本文件路径}/skills/` | 运行时加载 | 追加技能 |
+| `smart-openclaw/ADDITION_SOUL.md` | `SOUL.md` | 追加人格 |
+| `smart-openclaw/ADDITION_AGENTS.md` | `AGENTS.md` | 追加工作风格 |
+| `smart-openclaw/skills/` | 运行时加载 | 追加技能 |
 
 ## 追加 SKILL
 
-- 需要追加的 skill 都在 `{本文件路径}/skills/` 目录下
-- **交互式装载** - 启动时运行 `./skills/list-skills.sh` 进入交互界面
-- 用户可选择：查看详情、从 ClawHub 安装、卸载技能
+- 需要追加的 skill 都在 `smart-openclaw/skills/` 目录下
+- **状态检查** - 运行 `./skills/list-skills.sh` 检查本地技能的安装状态
+- 输出说明：✅ 已安装到 OpenClaw | ❌ 未安装
