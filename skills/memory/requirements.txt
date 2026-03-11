@@ -1,0 +1,11 @@
+# Memory Skill - RAG Dependencies
+# Install: pip install -r requirements.txt
+
+# 向量数据库（本地模式）
+chromadb>=0.4.0
+
+# 本地 Embedding 模型
+sentence-transformers>=2.2.0
+
+# 可选：更快的向量检索
+faiss-cpu>=1.7.0
