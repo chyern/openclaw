@@ -39,9 +39,8 @@
 ### 关键决策
 
 1. **碎片按小时分割** → 避免单文件过大，便于定位
-2. **RAG 优先** → 检索成本几乎为 0，适合频繁查询
-3. **目录索引降级** → RAG 不可用时自动 fallback
-4. **本地运行** → 无需外部 API，数据隐私安全
+2. **纯 RAG 检索** → 无中间索引层，简化架构
+3. **本地运行** → 无需外部 API，数据隐私安全
 
 ---
 
@@ -62,8 +61,121 @@ skills/memory/
 **运行时生成：**
 - `memory/fragmentization/` - 记忆碎片（原始对话日志）
 - `memory/palace/` - 记忆宫殿（结构化知识）
-- `memory/directory.md` - 记忆目录索引
 - `memory/chroma/` - 向量数据库索引
+
+---
+
+## 🧠 记忆读取时机
+
+| 时机 | 说明 |
+|------|------|
+| 会话启动 | 新会话开始时读取热点记忆 |
+| 提及相关话题 | 检测到关键词/项目名时 |
+| 做决策前 | 涉及用户偏好/历史决策时 |
+| 心跳检查 | 定期读取记忆 |
+| 长对话中 | 对话超过 10 轮后 |
+| 简单问答 | "今天天气如何" — 不读取 |
+| 用户明确说不用查 | 跳过检索 |
+| 紧急操作 | "快停止那个进程" — 不读取 |
+
+---
+
+## 🔄 记忆整理流程
+
+### 自动整理（推荐）
+
+```
+1. 对话进行中 → 实时记录到 fragmentization/
+2. 会话结束 → 触发整理任务
+3. 整理任务 → 读取碎片 → 更新 palace/ → 更新 RAG 索引
+```
+
+### 手动整理
+
+```bash
+# 初始化/更新 RAG 索引
+python scripts/rag_search.py init
+
+# 搜索记忆
+python scripts/rag_search.py search "用户偏好"
+
+# 添加单个记忆
+python scripts/rag_search.py add "filename.md" "内容"
+```
+
+---
+
+## 📦 依赖安装
+
+```bash
+cd skills/memory
+pip install -r requirements.txt
+python scripts/rag_search.py init
+```
+
+**依赖说明：**
+- `chromadb` - 本地向量数据库
+- `sentence-transformers` - 本地 Embedding 模型（支持中文）
+- `faiss-cpu` - 可选，更快的向量检索
+
+---
+
+## 🔧 故障处理
+
+| 问题 | 处理方案 |
+|------|----------|
+| 索引为空 | 运行 `python scripts/rag_search.py init` |
+| 检索无结果 | 正常，返回空列表 |
+| 依赖未安装 | 运行 `pip install -r requirements.txt` |
+
+---
+
+## 🔍 RAG 检索详解
+
+### 工作流程
+
+```
+用户提问
+    ↓
+检测需要记忆检索
+    ↓
+RAG 搜索（本地 ChromaDB + 向量匹配）
+    ↓
+返回最相关的 3-5 个记忆片段
+    ↓
+拼接上下文 → 发送给 LLM 生成回答
+```
+
+**关键点：**
+- 检索阶段**不调用 LLM**，纯本地向量计算
+- 只有最终生成回答时才消耗 LLM tokens
+- Embedding 模型：`sentence-transformers`（本地运行，支持中文）
+
+### 方案对比
+
+| 方案 | Token 消耗 | 检索准确度 | 维护成本 |
+|------|-----------|-----------|----------|
+| **RAG 语义检索** | ~0 tokens | ⭐⭐⭐⭐⭐ 语义匹配 | 低（自动） |
+| 读取所有记忆 | ~5000+ tokens | ⭐⭐⭐⭐ 完整上下文 | 低（但浪费） |
+| 关键词匹配 | ~100-300 tokens | ⭐⭐ 字面匹配 | 中 |
+
+### RAG 优势
+
+- ✅ **检索几乎 0 LLM tokens** — 本地向量数据库
+- ✅ **语义匹配** — 理解意思，不是关键词
+- ✅ **自动维护索引** — 添加/更新记忆时自动同步
+- ✅ **本地运行** — 无需外部 API，数据隐私安全
+- ✅ **可扩展** — 支持数千个记忆文件
+
+### 技术细节
+
+| 组件 | 说明 |
+|------|------|
+| **向量数据库** | ChromaDB（本地持久化，DuckDB + Parquet） |
+| **Embedding 模型** | `paraphrase-multilingual-MiniLM-L12-v2` |
+| **相似度算法** | 余弦相似度（cosine） |
+| **索引位置** | `memory/chroma/` |
+| **索引文件** | `memory/index.json`（元数据缓存） |
 
 ---
 
@@ -96,11 +208,14 @@ python scripts/rag_search.py add "filename.md" "内容"
 
 ## 📝 版本历史
 
+### v0.1.1 (2026-03-11) - 简化架构
+- ✅ 移除 directory.md，纯 RAG 检索
+- ✅ 简化故障处理流程
+
 ### v0.1.0 (2026-03-11) - 初始版本
 - ✅ 基础碎片记录功能
 - ✅ RAG 语义检索（ChromaDB + sentence-transformers）
 - ✅ 记忆宫殿结构定义
-- ✅ 目录索引降级方案
 - ✅ 自动整理任务
 
 ---

@@ -1,173 +1,144 @@
 # Memory Skill - 对话记忆与归纳
 
-## 定义
+## 核心定义
 
-### 记忆碎片（Memory Fragmentization）
-**路径：** `memory/fragmentization/YYYY-MM-DD HH.md`
+### 存储结构
 
-- 原始、完整、追加式的对话日志
-- 每次用户交互时自动记录
-- 保留所有细节，不做筛选
-- 按小时分割文件（便于管理和定位）
-- **时间戳精度：** 秒级（`HH:mm:ss`）
-
-### 记忆宫殿（Memory Palace）
-**路径：** `memory/palace/`
-
-- 由记忆碎片整理生成的结构化知识库
-- 按照不同的知识体系创建下级目录
-- 根据具体内容创建不同的 `.md` 文件
-- **文件命名：** 英文（如 `user-preferences.md`、`project-context.md`）
-- **内容风格：** 中文
-- **热度分类：**
-  - 🔥 热点记忆 - 高频读取的内容
-  - ❄️ 冷记忆 - 低频读取的内容
-
-### 记忆目录（Memory Directory）
-**路径：** `memory/directory.md`
-
-- 维护记忆在记忆宫殿中的路径和说明
-- **不记录具体内容**，只记录索引
-- 通过路径定位到记忆宫殿中的具体内容
-- 记录**上一次整理时间**，用于增量整理
-
-### 记忆索引（RAG Vector Index）
-**路径：** `memory/chroma/`
-
-- ChromaDB 本地向量存储（自动生成）
-- 支持语义检索，无需手动维护索引
-- **检索成本：** 几乎 0 LLM tokens（本地向量计算）
-- **Embedding 模型：** sentence-transformers（本地运行）
+| 层级 | 路径 | 用途 |
+|------|------|------|
+| **碎片** | `memory/fragmentization/YYYY-MM-DD HH.md` | 原始对话日志（追加式，按小时分割） |
+| **宫殿** | `memory/palace/` | 结构化知识库（按主题分类的 `.md` 文件） |
+| **索引** | `memory/chroma/` | ChromaDB 向量索引（语义检索） |
 
 ---
 
-## 检索模式
+## AI 使用指南
 
-### 模式 1：RAG 语义检索（默认）⭐
+### 1. 初始化检查
 
-**适用场景：**
-- 模糊查询（"用户喜欢什么"）
-- 跨文件检索
-- 大量记忆文件（>10 个）
-
-**工作流程：**
-```
-1. 用户提问 → 检测需要记忆
-2. RAG 搜索 → 语义匹配 → 返回相关片段
-3. 消耗：~0 LLM tokens（本地向量计算）
-```
-
-**命令：**
+**每次会话启动时执行：**
 ```bash
-python skills/memory/scripts/rag_search.py search "查询内容"
+# 检查索引是否存在
+if [ ! -d "$WORKSPACE_ROOT/memory/chroma" ]; then
+    python skills/memory/scripts/rag_search.py init
+fi
 ```
 
-**依赖：**
+---
+
+### 2. 记忆检索
+
+**触发条件（满足任一即检索）：**
+- 用户提到具体人名、项目名、地点
+- 用户提问涉及偏好/历史/决策（"我之前说过..."）
+- 对话超过 10 轮，需要上下文
+- 心跳检查时（定期回顾）
+
+**不检索的情况：**
+- 简单事实问答（"今天几号"）
+- 紧急操作（"快停止进程"）
+- 用户明确说"不用查"
+
+**检索命令：**
+```bash
+python skills/memory/scripts/rag_search.py search "<查询内容>"
+```
+
+**Query 提取策略：**
+| 用户输入 | 提取的 Query |
+|----------|-------------|
+| "我上次说的那个项目" | "项目" |
+| "鱼蛋喜欢吃什么" | "鱼蛋 偏好 食物" |
+| "云鲸的加班文化" | "云鲸 加班 文化" |
+| "记得帮我记下来" | （不检索，触发添加） |
+
+**返回格式：**
+```json
+[{"content": "...", "filename": "...", "filepath": "...", "distance": 0.xx}]
+```
+
+**处理逻辑：**
+- `distance < 0.3` → 高相关，直接使用
+- `distance 0.3-0.6` → 中等相关，谨慎引用
+- `distance > 0.6` 或空列表 → 无结果，告知用户"没找到相关记忆"
+
+---
+
+### 3. 记忆添加
+
+**触发时机：**
+- 心跳时整理（碎片 → 宫殿 → 索引）
+- 用户明确说"记住这个"（立即添加）
+- 发现重要信息（决策、偏好、待办）
+
+**添加命令：**
+```bash
+python skills/memory/scripts/rag_search.py add "<文件名>" "<内容>"
+```
+
+**文件名规范：**
+- 偏好类：`user-preferences.md`
+- 项目类：`project-<项目名>.md`
+- 待办类：`todos.md`
+- 上下文类：`context-<主题>.md`
+
+---
+
+### 4. 心跳整理流程
+
+**系统后台自动执行**（AI 不主动调用，只负责读取）：
+
+```
+阶段 1: 碎片 → 宫殿
+1. 读取未整理的碎片文件
+   → memory/fragmentization/YYYY-MM-DD HH.md
+
+2. 提取关键信息（决策、偏好、待办、项目进展）
+   → 分类整理
+
+3. 更新记忆宫殿
+   → memory/palace/<主题>.md
+
+阶段 2: 宫殿 → 索引
+4. 更新 RAG 索引
+   → 系统自动调用脚本完成索引同步
+```
+
+**AI 角色：** 心跳时直接读取已更新的记忆宫殿和索引，无需执行整理命令。
+
+---
+
+## 依赖与环境
+
+**安装依赖：**
 ```bash
 pip install -r skills/memory/requirements.txt
 ```
 
----
+**依赖包：**
+- `chromadb` - 向量数据库
+- `sentence-transformers` - Embedding 模型（支持中文）
 
-### 模式 2：目录索引检索（备用）
-
-**适用场景：**
-- RAG 未初始化
-- 简单关键词匹配
-- 已知确切文件名
-
-**工作流程：**
-```
-1. 读 memory/directory.md（~100 tokens）
-2. 定位到具体文件
-3. 按需读取（~200-500 tokens）
-```
+**环境变量：**
+- `WORKSPACE_ROOT` - 工作区根目录（默认：`/Users/narwal/.openclaw/workspace`）
 
 ---
 
-## 记忆读取时机
+## 故障处理
 
-| 时机 | 说明 | 推荐模式 |
-|------|------|----------|
-| 会话启动 | 新会话开始时读取热点记忆 | RAG |
-| 提及相关话题 | 检测到关键词/项目名时 | RAG |
-| 做决策前 | 涉及用户偏好/历史决策时 | RAG |
-| 心跳检查 | 定期读取记忆 | RAG |
-| 长对话中 | 对话超过 10 轮后 | RAG |
-| 简单问答 | "今天天气如何" | 不读取 |
-| 用户明确说不用查 | 跳过检索 | 不读取 |
-| 紧急操作 | "快停止那个进程" | 不读取 |
-
----
-
-## 记忆整理流程
-
-### 自动整理（推荐）
-
-```
-1. 对话进行中 → 实时记录到 fragmentization/
-2. 会话结束 → 触发整理任务
-3. 整理任务 → 读取碎片 → 更新 palace/ → 更新 RAG 索引
-```
-
-### 手动整理
-
-```bash
-# 初始化/更新 RAG 索引
-python skills/memory/scripts/rag_search.py init
-
-# 搜索记忆
-python skills/memory/scripts/rag_search.py search "用户偏好"
-
-# 添加单个记忆
-python skills/memory/scripts/rag_search.py add "filename.md" "内容"
-```
-
----
-
-## 为什么用 RAG？
-
-| 方案 | Token 消耗 | 检索准确度 | 维护成本 |
-|------|-----------|-----------|----------|
-| **RAG 语义检索** | ~0 tokens | ⭐⭐⭐⭐⭐ 语义匹配 | 低（自动） |
-| 目录索引检索 | ~300-600 tokens | ⭐⭐⭐ 关键词匹配 | 中（手动维护） |
-| 读取所有记忆 | ~5000+ tokens | ⭐⭐⭐⭐ 完整上下文 | 低（但浪费） |
-
-**RAG 优势：**
-- ✅ 检索几乎 0 LLM tokens
-- ✅ 语义匹配（不是关键词）
-- ✅ 自动维护索引
-- ✅ 本地运行（无需外部 API）
-- ✅ 可扩展到大量记忆
-
----
-
-## 依赖安装
-
-```bash
-# 进入 skill 目录
-cd skills/memory
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 初始化索引
-python scripts/rag_search.py init
-```
-
-**依赖说明：**
-- `chromadb` - 本地向量数据库
-- `sentence-transformers` - 本地 Embedding 模型（支持中文）
-- `faiss-cpu` - 可选，更快的向量检索
-
----
-
-## 故障降级
-
-| 问题 | 降级方案 |
+| 问题 | 处理方案 |
 |------|----------|
-| RAG 未安装依赖 | 自动降级到目录索引模式 |
-| 索引为空 | 提示用户运行 `init` |
-| 检索无结果 | 返回空列表，不报错 |
+| 索引目录不存在 | 运行 `init` 初始化 |
+| 检索返回空列表 | 告知用户"没找到相关记忆"，不报错 |
+| 依赖未安装 | 提示运行 `pip install -r requirements.txt` |
+| 脚本执行失败 | 降级到不检索，继续对话 |
+
+---
+
+## 脚本位置
+
+- **主脚本：** `skills/memory/scripts/rag_search.py`
+- **依赖文件：** `skills/memory/requirements.txt`
+- **辅助脚本：** `skills/memory/scripts/summarize.sh`（创建今日模板）
 
 ---
