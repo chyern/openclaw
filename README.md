@@ -33,13 +33,17 @@
 
 ```
 smart-openclaw/
-├── README.md                    # 本文件 - 仓库说明
+├── README.md                    # 项目说明
 ├── DESIGN.md                    # 追加规则配置
 ├── ADDITION_SOUL.md             # 追加人格设定
 ├── ADDITION_AGENTS.md           # 追加行为设定
+├── LICENSE                      # 开源许可证 (MIT)
+├── .gitignore                   # Git 忽略文件
 └── skills/                      # 技能目录
+    ├── list-skills.sh           # 技能状态检查脚本
     └── memory/                  # 记忆管理技能
         ├── SKILL.md
+        ├── README.md
         └── scripts/
 ```
 
@@ -59,14 +63,25 @@ smart-openclaw/
 - `ADDITION_SOUL.md` - 扩展人格和行为准则
 - `ADDITION_AGENTS.md` - 扩展工作流程和做事方式
 
-### 3. 添加技能
+### 3. 技能管理
 
-将自定义技能放入 `skills/` 目录，自动加载。
+- **添加技能**：将自定义技能放入 `skills/` 目录，自动加载。
+- **检查技能状态**：运行 `./skills/list-skills.sh`，查看本地技能的安装状态（✅ 已安装到 OpenClaw | ❌ 未安装）。
+
+### 4. 同步与更新
+
+本项目通过 Git 管理。定期执行 `git pull` 获取最新设定和技能。
 
 ## 📋 追加规则
 
-详见 [DESIGN.md](./DESIGN.md)
+详见 [DESIGN.md](./DESIGN.md)，核心原则：
+
+- **内存拼接**：设定模块在运行时拼接，不修改原文件
+- **文件独立**：追加文件保持独立，不修改原始文件  
+- **连接模式**：追加 skill 使用文件连接，不复制文件内容
+- **自动启用**：文件存在即启用，删除即失效
 
 ## 📖 参考
 
 - [OpenClaw 官方文档](https://docs.openclaw.ai)
+- [OpenClaw 技能中心](https://clawhub.com)
